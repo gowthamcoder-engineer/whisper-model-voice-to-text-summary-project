@@ -10,28 +10,30 @@ import tkinter.filedialog as fd
 import tkinter.messagebox as mb
 import customtkinter as ctk
 
-ctk.set_appearance_mode("dark")
+# ── Light / White theme ───────────────────────────────────────────────────────
+ctk.set_appearance_mode("light")
 ctk.set_default_color_theme("blue")
 
-# ─── Palette ──────────────────────────────────────────────────────────────────
-BG       = "#FFFFFF"
-SURFACE  = "#0D1526"
-CARD     = "#111D33"
-RAISED   = "#152133"
-BORDER   = "#1C2F46"
-TEXT     = "#CCD9EC"
-MUTED    = "#4A6680"
-RED      = "#FF4757"
-GREEN    = "#2ED573"
-BLUE     = "#3D9BFF"
-PURPLE   = "#8B5CF6"
-AMBER    = "#F59E0B"
-TEAL     = "#14B8A6"
-DARK_GREEN = "#051a0d"
+# ─── Palette (WHITE / LIGHT) ──────────────────────────────────────────────────
+BG         = "#F4F7FB"   # page background  — very light blue-grey
+SURFACE    = "#FFFFFF"   # panels / topbar
+CARD       = "#FFFFFF"   # main card background
+RAISED     = "#EDF1F7"   # slightly raised surfaces, option-menus
+BORDER     = "#CBD5E1"   # dividers, borders
+TEXT       = "#1E293B"   # primary text (near-black)
+MUTED      = "#64748B"   # secondary / placeholder text
+RED        = "#E53E3E"   # record button
+GREEN      = "#16A34A"   # done / excel button
+BLUE       = "#2563EB"   # logo, progress
+PURPLE     = "#7C3AED"
+AMBER      = "#D97706"
+TEAL       = "#0D9488"
+DARK_GREEN = "#14532D"   # excel button text
 
-SPEAKER_FG = ["#4FC3F7","#81C784","#FFB74D","#F48FB1","#CE93D8","#80CBC4"]
-SPEAKER_BG = ["#0D2B36","#0D2B14","#2B1D0A","#2B0D1C","#1D0D2B","#0D2B28"]
-SPEAKER_BD = ["#1a4f66","#1a4f2a","#4f3a14","#4f1a3a","#2a1a4f","#1a4f4a"]
+# ── Speaker accent colours stay vivid; backgrounds & borders go LIGHT ─────────
+SPEAKER_FG = ["#0369A1", "#15803D", "#B45309", "#9D174D", "#6D28D9", "#0F766E"]
+SPEAKER_BG = ["#EFF6FF", "#F0FDF4", "#FFFBEB", "#FFF0F6", "#F5F3FF", "#F0FDFA"]
+SPEAKER_BD = ["#BFDBFE", "#BBF7D0", "#FDE68A", "#FBCFE8", "#DDD6FE", "#99F6E4"]
 
 def spk_fg(i): return SPEAKER_FG[i % len(SPEAKER_FG)]
 def spk_bg(i): return SPEAKER_BG[i % len(SPEAKER_BG)]
@@ -155,18 +157,16 @@ def export_excel(session: Dict, path: str):
         s = Side(style="thin", color="BBBBBB")
         return Border(left=s,right=s,top=s,bottom=s)
 
-    spk_data      = session["speaker_data"]       # {int → {text,segments,...}}
-    spk_summaries = session["speaker_summaries"]   # {int → str}
+    spk_data      = session["speaker_data"]
+    spk_summaries = session["speaker_summaries"]
     segments      = session["segments"]
     overall       = session["overall_summary"]
     n_spk         = len(spk_data)
 
-    # ── Column widths ──────────────────────────────────────────────────────
-    ws.column_dimensions["A"].width = 14         # Timeline
+    ws.column_dimensions["A"].width = 14
     for i in range(n_spk):
         ws.column_dimensions[get_column_letter(2+i)].width = 52
 
-    # ── Row 1: Title ───────────────────────────────────────────────────────
     last_col = get_column_letter(1 + n_spk)
     ws.merge_cells(f"A1:{last_col}1")
     c = ws["A1"]
@@ -176,9 +176,7 @@ def export_excel(session: Dict, path: str):
     c.alignment = Alignment(horizontal="center", vertical="center")
     ws.row_dimensions[1].height = 34
 
-    # ── Row 2: Column Headers ──────────────────────────────────────────────
     SPK_HDR_BG = ["1A5276","1E8449","784212","76448A","117A65","1A5276"]
-    # Timeline header
     c = ws.cell(2,1,"TIMELINE")
     c.font=Font(name="Calibri",bold=True,size=11,color="FFFFFF")
     c.fill=fill("1B2631"); c.alignment=Alignment(horizontal="center",vertical="center")
@@ -191,7 +189,6 @@ def export_excel(session: Dict, path: str):
         c.alignment = Alignment(horizontal="center",vertical="center")
         c.border = bdr()
 
-    # ── Rows 3+: Transcript segments ──────────────────────────────────────
     SPK_LIGHT = ["D6EAF8","D5F5E3","FDEBD0","F5EEF8","D1F2EB","D6EAF8"]
     SPK_DARK  = ["1A5276","1E8449","784212","76448A","117A65","1A5276"]
 
@@ -202,26 +199,22 @@ def export_excel(session: Dict, path: str):
         light = SPK_LIGHT[idx % len(SPK_LIGHT)]
         dark  = SPK_DARK [idx % len(SPK_DARK)]
 
-        # Timeline cell
         c = ws.cell(row,1, f"{fmt_time(seg['start'])}→{fmt_time(seg['end'])}")
         c.font=Font(name="Courier New",size=9,color="666666")
         c.fill=fill("F2F3F4"); c.alignment=Alignment(horizontal="center",vertical="top")
         c.border=bdr(); ws.row_dimensions[row].height=40
 
-        # Spoken text in speaker column
         c = ws.cell(row, col, seg["text"])
         c.font=Font(name="Calibri",size=10)
         c.fill=fill(light); c.alignment=Alignment(vertical="top",wrap_text=True)
         c.border=bdr()
 
-        # Empty other speaker columns
         for j in range(n_spk):
             if j != idx:
                 c = ws.cell(row,2+j,"")
                 c.fill=fill("F8F9FA"); c.border=bdr()
         row += 1
 
-    # ── Summary row header ─────────────────────────────────────────────────
     ws.merge_cells(f"A{row}:{last_col}{row}")
     c = ws.cell(row,1,"  📝  SPEAKER SUMMARIES")
     c.font=Font(name="Calibri",bold=True,size=11,color="FFFFFF")
@@ -229,12 +222,10 @@ def export_excel(session: Dict, path: str):
     c.border=bdr(); ws.row_dimensions[row].height=24
     row += 1
 
-    # Speaker summary cells
     ws.cell(row,1,"SUMMARY").font=Font(name="Calibri",bold=True,size=9,color="AAAAAA")
     ws.cell(row,1).fill=fill("F2F3F4"); ws.cell(row,1).border=bdr()
     ws.cell(row,1).alignment=Alignment(horizontal="center",vertical="top")
     for i, (idx, summ) in enumerate(spk_summaries.items()):
-        dark = SPK_DARK[idx % len(SPK_DARK)]
         c = ws.cell(row, 2+i, summ)
         c.font=Font(name="Calibri",size=10,italic=True)
         c.fill=fill(SPK_LIGHT[idx%len(SPK_LIGHT)])
@@ -243,7 +234,6 @@ def export_excel(session: Dict, path: str):
     ws.row_dimensions[row].height = 80
     row += 1
 
-    # ── Overall best summary row ───────────────────────────────────────────
     ws.merge_cells(f"A{row}:{last_col}{row}")
     c = ws.cell(row,1,"  ✅  OVERALL BEST SUMMARY — Key Points from All Speakers")
     c.font=Font(name="Calibri",bold=True,size=12,color="FFFFFF")
@@ -273,7 +263,6 @@ class SpeakSenseApp(ctk.CTk):
         self.configure(fg_color=BG)
         self.resizable(True, True)
 
-        # State
         self._recording   = False
         self._frames      = []
         self._timer_sec   = 0
@@ -282,8 +271,8 @@ class SpeakSenseApp(ctk.CTk):
         self._processor   = None
         self._summarizer  = Summarizer()
         self._session     = {}
-        self._row_widgets = []   # list of row dicts built dynamically
-        self._spk_cols    = []   # list of speaker column index (0-based from SPEAKER cols)
+        self._row_widgets = []
+        self._spk_cols    = []
         self._n_speakers  = 0
 
         self._build_topbar()
@@ -292,11 +281,10 @@ class SpeakSenseApp(ctk.CTk):
         self._build_main_table()
         self._waveform_loop()
 
-    # ──────────────────────────────────────────────────────────────────────
-    # Top bar
-    # ──────────────────────────────────────────────────────────────────────
+    # ── Top bar ───────────────────────────────────────────────────────────
     def _build_topbar(self):
-        bar = ctk.CTkFrame(self, fg_color=SURFACE, height=52, corner_radius=0)
+        bar = ctk.CTkFrame(self, fg_color=SURFACE, height=52, corner_radius=0,
+                           border_width=1, border_color=BORDER)
         bar.pack(fill="x")
         bar.pack_propagate(False)
 
@@ -304,7 +292,6 @@ class SpeakSenseApp(ctk.CTk):
                      font=ctk.CTkFont("Segoe UI",19,"bold"),
                      text_color=BLUE).pack(side="left", padx=22, pady=12)
 
-        # Right: status + timer
         right = ctk.CTkFrame(bar, fg_color="transparent")
         right.pack(side="right", padx=18)
 
@@ -318,57 +305,58 @@ class SpeakSenseApp(ctk.CTk):
                                          text_color=MUTED)
         self._status_lbl.pack(side="right")
 
-    # ──────────────────────────────────────────────────────────────────────
-    # Controls row
-    # ──────────────────────────────────────────────────────────────────────
+    # ── Controls row ──────────────────────────────────────────────────────
     def _build_controls(self):
-        bar = ctk.CTkFrame(self, fg_color=CARD, height=62, corner_radius=0)
+        bar = ctk.CTkFrame(self, fg_color=RAISED, height=62, corner_radius=0,
+                           border_width=1, border_color=BORDER)
         bar.pack(fill="x")
         bar.pack_propagate(False)
 
-        # Whisper model
         ctk.CTkLabel(bar, text="WHISPER",
                      font=ctk.CTkFont("Courier",9), text_color=MUTED
                      ).pack(side="left", padx=(18,3))
         self._w_var = ctk.StringVar(value="base")
         ctk.CTkOptionMenu(bar, variable=self._w_var,
                           values=["tiny","base","small","medium","large"],
-                          width=120, height=30, fg_color=SURFACE,
-                          button_color=RAISED,
+                          width=120, height=30,
+                          fg_color=SURFACE, button_color=BORDER,
+                          text_color=TEXT, button_hover_color=BORDER,
+                          dropdown_fg_color=SURFACE, dropdown_text_color=TEXT,
                           font=ctk.CTkFont("Courier",11)
                           ).pack(side="left", padx=(0,18))
 
-        # Ollama model
         ctk.CTkLabel(bar, text="OLLAMA",
                      font=ctk.CTkFont("Courier",9), text_color=MUTED
                      ).pack(side="left", padx=(0,3))
         self._o_var = ctk.StringVar(value="llama3")
         ctk.CTkOptionMenu(bar, variable=self._o_var,
                           values=["llama3","llama3.1","mistral","gemma2","phi3","qwen2"],
-                          width=130, height=30, fg_color=SURFACE,
-                          button_color=RAISED,
+                          width=130, height=30,
+                          fg_color=SURFACE, button_color=BORDER,
+                          text_color=TEXT, button_hover_color=BORDER,
+                          dropdown_fg_color=SURFACE, dropdown_text_color=TEXT,
                           font=ctk.CTkFont("Courier",11)
                           ).pack(side="left", padx=(0,28))
 
-        # Buttons
         self._btn_start = ctk.CTkButton(
             bar, text="⏺  Start Recording", width=170, height=34,
-            fg_color=RED, hover_color="#cc2535",
+            fg_color=RED, hover_color="#b91c1c",
             font=ctk.CTkFont("Segoe UI",13,"bold"),
             command=self._start)
         self._btn_start.pack(side="left", padx=4)
 
         self._btn_stop = ctk.CTkButton(
             bar, text="⏹  Stop & Analyze", width=170, height=34,
-            state="disabled", fg_color=RAISED, hover_color=BORDER,
+            state="disabled", fg_color=BORDER, hover_color="#94a3b8",
+            text_color=TEXT,
             font=ctk.CTkFont("Segoe UI",13,"bold"),
             command=self._stop)
         self._btn_stop.pack(side="left", padx=4)
 
         self._btn_xl = ctk.CTkButton(
             bar, text="📊  Save Excel", width=150, height=34,
-            state="disabled", fg_color=GREEN, hover_color="#1dba60",
-            text_color=DARK_GREEN,
+            state="disabled", fg_color=GREEN, hover_color="#15803d",
+            text_color="#FFFFFF",
             font=ctk.CTkFont("Segoe UI",13,"bold"),
             command=self._save_excel)
         self._btn_xl.pack(side="left", padx=4)
@@ -380,18 +368,19 @@ class SpeakSenseApp(ctk.CTk):
                                        text_color=BLUE)
         self._prog_lbl.pack(side="left", padx=(16,6))
         self._prog_bar = ctk.CTkProgressBar(self._prog_frame, width=200, height=10,
-                                             fg_color=RAISED, progress_color=BLUE)
+                                             fg_color=BORDER, progress_color=BLUE)
         self._prog_bar.pack(side="left")
         self._prog_bar.set(0)
 
-    # ──────────────────────────────────────────────────────────────────────
-    # Waveform
-    # ──────────────────────────────────────────────────────────────────────
+    # ── Waveform ──────────────────────────────────────────────────────────
     def _build_waveform(self):
-        self._wave_frame = ctk.CTkFrame(self, fg_color=CARD, height=58, corner_radius=0)
+        self._wave_frame = ctk.CTkFrame(self, fg_color=SURFACE, height=58,
+                                         corner_radius=0,
+                                         border_width=1, border_color=BORDER)
         self._wave_frame.pack(fill="x")
         self._wave_frame.pack_propagate(False)
-        self._wave_canvas = tk.Canvas(self._wave_frame, bg=CARD,
+        # Canvas uses SURFACE as bg so it blends with light theme
+        self._wave_canvas = tk.Canvas(self._wave_frame, bg=SURFACE,
                                        highlightthickness=0, height=58)
         self._wave_canvas.pack(fill="both", expand=True, padx=16, pady=4)
 
@@ -405,33 +394,31 @@ class SpeakSenseApp(ctk.CTk):
                 for i, v in enumerate(self._wavedata):
                     bh = max(2, v * H * 3.5)
                     x  = i * bw
-                    a  = int(60 + v * 195)
-                    r  = min(255, 80 + int(v*175))
-                    color = f"#{r:02x}4757"
+                    # On white bg: use solid red bars that darken with amplitude
+                    intensity = int(200 + v * 55)          # 200-255 range for R
+                    blue_ch   = int(max(0, 80 - v * 80))   # fade blue out
+                    color = f"#{intensity:02x}{blue_ch:02x}{blue_ch:02x}"
                     c.create_rectangle(x, H/2-bh/2, x+bw-1, H/2+bh/2,
                                        fill=color, outline="")
             else:
-                c.create_text(W/2, H/2, text="── waveform appears during recording ──",
+                c.create_text(W/2, H/2,
+                              text="── waveform appears during recording ──",
                               fill=MUTED, font=("Segoe UI",10))
         except Exception: pass
         self.after(45, self._waveform_loop)
 
-    # ──────────────────────────────────────────────────────────────────────
-    # Main table (built dynamically after processing)
-    # ──────────────────────────────────────────────────────────────────────
+    # ── Main table ────────────────────────────────────────────────────────
     def _build_main_table(self):
-        """Outer scrollable container — inner grid rebuilt after each session."""
         outer = ctk.CTkFrame(self, fg_color=BG, corner_radius=0)
         outer.pack(fill="both", expand=True, padx=14, pady=(10,10))
 
-        # Scrollable area
         self._scroll = ctk.CTkScrollableFrame(
             outer, fg_color=CARD, corner_radius=12,
+            border_width=1, border_color=BORDER,
             scrollbar_button_color=BORDER,
-            scrollbar_button_hover_color=BORDER)
+            scrollbar_button_hover_color="#94a3b8")
         self._scroll.pack(fill="both", expand=True)
 
-        # Placeholder shown before recording
         self._placeholder = ctk.CTkLabel(
             self._scroll,
             text="Press  ⏺ Start Recording  to begin.\n\n"
@@ -445,8 +432,6 @@ class SpeakSenseApp(ctk.CTk):
         self._placeholder.pack(expand=True, pady=80)
 
     def _rebuild_table(self):
-        """Called after transcript_ready — creates the column layout."""
-        # Destroy everything in scroll
         for w in self._scroll.winfo_children():
             w.destroy()
 
@@ -455,13 +440,11 @@ class SpeakSenseApp(ctk.CTk):
         if self._n_speakers == 0: return
 
         grid = self._scroll
-
-        # ── Configure columns ─────────────────────────────────────────────
         grid.grid_columnconfigure(0, weight=0, minsize=100)
         for i in range(self._n_speakers):
             grid.grid_columnconfigure(i+1, weight=1, minsize=260)
 
-        # ── Header row ────────────────────────────────────────────────────
+        # Header row
         tl_hdr = ctk.CTkLabel(grid, text="TIMELINE",
                                font=ctk.CTkFont("Courier",9,"bold"),
                                text_color=MUTED,
@@ -479,36 +462,29 @@ class SpeakSenseApp(ctk.CTk):
                          text_color=fg).pack(side="left", padx=10, pady=8)
             info = spk_data.get(i, {})
             ctk.CTkLabel(hdr,
-                         text=f"{info.get('count',0)} segments · {info.get('duration',0):.1f}s",
+                         text=f"{info.get('count',0)} segs · {info.get('duration',0):.1f}s",
                          font=ctk.CTkFont("Courier",9), text_color=MUTED
                          ).pack(side="left", padx=4, pady=8)
 
-        # ── Segment rows (populated live by _add_segment_row) ─────────────
         self._seg_row_start = 1
         self._next_seg_row  = 1
-        self._seg_cells = {}   # (row, col) → CTkLabel
-
-        # ── Bottom section (summaries + overall) built after summaries ready ─
-        # Reserve space by tracking last used row
-        self._summary_row_idx = None  # set when filling summaries
+        self._seg_cells     = {}
 
     def _add_segment_row(self, seg: Dict):
-        """Add one transcript segment row to the live table."""
-        grid   = self._scroll
-        row    = self._next_seg_row
+        grid = self._scroll
+        row  = self._next_seg_row
         self._next_seg_row += 1
-        idx    = seg["speaker"]
-        col    = idx + 1
+        idx  = seg["speaker"]
+        col  = idx + 1
 
         # Timeline cell
         tl = ctk.CTkLabel(grid,
                            text=f"{fmt_time(seg['start'])}\n→{fmt_time(seg['end'])}",
                            font=ctk.CTkFont("Courier",10),
-                           text_color=MUTED, fg_color=SURFACE,
+                           text_color=MUTED, fg_color=RAISED,
                            corner_radius=4, width=90, height=52)
         tl.grid(row=row, column=0, padx=(4,2), pady=1, sticky="nsew")
 
-        # Spoken text cell (speaker column)
         fg = spk_fg(idx); bg = spk_bg(idx); bd = spk_bd(idx)
         cell = ctk.CTkFrame(grid, fg_color=bg, corner_radius=6,
                              border_width=1, border_color=bd)
@@ -521,21 +497,20 @@ class SpeakSenseApp(ctk.CTk):
         # Empty cells for other speakers
         for j in range(self._n_speakers):
             if j != idx:
-                e = ctk.CTkFrame(grid, fg_color=SURFACE, corner_radius=4, height=52)
+                e = ctk.CTkFrame(grid, fg_color="#F8FAFC", corner_radius=4, height=52)
                 e.grid(row=row, column=j+1, padx=2, pady=1, sticky="nsew")
 
     def _build_summary_section(self):
-        """Builds the per-speaker summary row and overall best summary row."""
         grid = self._scroll
         row  = self._next_seg_row
 
-        # ── Divider ───────────────────────────────────────────────────────
+        # Divider
         sep = ctk.CTkFrame(grid, fg_color=BORDER, height=2, corner_radius=0)
         sep.grid(row=row, column=0, columnspan=self._n_speakers+1,
                  padx=4, pady=(8,4), sticky="ew")
         row += 1
 
-        # ── "SPEAKER SUMMARIES" label ─────────────────────────────────────
+        # "SPEAKER SUMMARIES" label
         lbl = ctk.CTkLabel(grid, text="📝  SPEAKER SUMMARIES",
                             font=ctk.CTkFont("Segoe UI",12,"bold"),
                             text_color=AMBER, fg_color=RAISED,
@@ -544,10 +519,9 @@ class SpeakSenseApp(ctk.CTk):
                  padx=4, pady=(0,4), sticky="ew")
         row += 1
 
-        # ── Per-speaker summary cells ─────────────────────────────────────
-        # Timeline label
+        # Timeline column label for summary row
         ctk.CTkLabel(grid, text="SUMMARY", font=ctk.CTkFont("Courier",8),
-                     text_color=MUTED, fg_color=SURFACE, corner_radius=4,
+                     text_color=MUTED, fg_color=RAISED, corner_radius=4,
                      width=90).grid(row=row, column=0, padx=(4,2), pady=2, sticky="nsew")
 
         self._spk_sum_labels = {}
@@ -567,42 +541,43 @@ class SpeakSenseApp(ctk.CTk):
             self._spk_sum_labels[i] = lbl2
         row += 1
 
-        # ── "OVERALL BEST SUMMARY" section ───────────────────────────────
+        # Overall divider
         sep2 = ctk.CTkFrame(grid, fg_color=BORDER, height=2, corner_radius=0)
         sep2.grid(row=row, column=0, columnspan=self._n_speakers+1,
                   padx=4, pady=(10,4), sticky="ew")
         row += 1
 
+        # Overall header — light green on white background
         hdr_overall = ctk.CTkLabel(
             grid,
             text="✅  OVERALL BEST SUMMARY — Key Points from All Speakers",
             font=ctk.CTkFont("Segoe UI",13,"bold"),
-            text_color=GREEN, fg_color="#0a2b18",
+            text_color=GREEN, fg_color="#DCFCE7",      # light green bg
             corner_radius=8, height=36, anchor="w")
         hdr_overall.grid(row=row, column=0, columnspan=self._n_speakers+1,
                          padx=4, pady=(0,2), sticky="ew")
         row += 1
 
-        overall_frame = ctk.CTkFrame(grid, fg_color="#0d2b1e", corner_radius=10,
-                                      border_width=1, border_color="#1a5c38")
+        # Overall summary text box — light green fill, dark text
+        overall_frame = ctk.CTkFrame(grid, fg_color="#F0FDF4", corner_radius=10,
+                                      border_width=1, border_color="#86EFAC")
         overall_frame.grid(row=row, column=0, columnspan=self._n_speakers+1,
                            padx=4, pady=(0,12), sticky="ew")
         self._overall_lbl = ctk.CTkLabel(
             overall_frame, text="Generating overall summary…",
             font=ctk.CTkFont("Segoe UI",12),
-            text_color="#a7f3d0", wraplength=1100,
+            text_color=DARK_GREEN,              # dark green text, readable on white
+            wraplength=1100,
             justify="left", anchor="nw")
         self._overall_lbl.pack(anchor="nw", padx=16, pady=14, fill="both")
 
-    # ──────────────────────────────────────────────────────────────────────
-    # Recording
-    # ──────────────────────────────────────────────────────────────────────
+    # ── Recording ─────────────────────────────────────────────────────────
     def _start(self):
         import sounddevice as sd
         self._frames.clear()
         self._recording = True
         self._session   = {}
-        self._btn_start.configure(state="disabled", fg_color="#7a0f18")
+        self._btn_start.configure(state="disabled", fg_color="#b91c1c")
         self._btn_stop.configure(state="normal")
         self._btn_xl.configure(state="disabled")
         self._status("⏺  RECORDING", RED)
@@ -632,7 +607,6 @@ class SpeakSenseApp(ctk.CTk):
             self._btn_start.configure(state="normal", fg_color=RED)
             return
 
-        # Save WAV
         Path("recordings").mkdir(exist_ok=True)
         wav_path = f"recordings/{uuid.uuid4().hex[:8]}.wav"
         audio = np.concatenate(self._frames, axis=0)
@@ -644,9 +618,7 @@ class SpeakSenseApp(ctk.CTk):
         self._show_progress(True, 0.05, "Loading Whisper…")
         threading.Thread(target=self._pipeline, args=(wav_path,), daemon=True).start()
 
-    # ──────────────────────────────────────────────────────────────────────
-    # Pipeline
-    # ──────────────────────────────────────────────────────────────────────
+    # ── Pipeline ──────────────────────────────────────────────────────────
     def _pipeline(self, wav_path):
         try:
             wm = self._w_var.get()
@@ -675,10 +647,9 @@ class SpeakSenseApp(ctk.CTk):
             self._session["overall_summary"]   = overall
 
             self._emit("progress",(0.95,"💾 Saving Excel…"))
-            # Auto-save Excel
-            ts   = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            ts  = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
             Path("exports").mkdir(exist_ok=True)
-            xls  = f"exports/SpeakSense_{ts}.xlsx"
+            xls = f"exports/SpeakSense_{ts}.xlsx"
             export_excel(self._session, xls)
 
             self._emit("complete", (overall, xls))
@@ -687,9 +658,7 @@ class SpeakSenseApp(ctk.CTk):
             import traceback; traceback.print_exc()
             self._emit("error", str(e))
 
-    # ──────────────────────────────────────────────────────────────────────
-    # Event dispatch
-    # ──────────────────────────────────────────────────────────────────────
+    # ── Event dispatch ────────────────────────────────────────────────────
     def _emit(self, ev, data):
         self.after(0, lambda: self._handle(ev, data))
 
@@ -728,9 +697,7 @@ class SpeakSenseApp(ctk.CTk):
             self._status("✗  ERROR", RED)
             mb.showerror("Error", str(data))
 
-    # ──────────────────────────────────────────────────────────────────────
-    # Helpers
-    # ──────────────────────────────────────────────────────────────────────
+    # ── Helpers ───────────────────────────────────────────────────────────
     def _status(self, text, color):
         self._status_lbl.configure(text=text, text_color=color)
 
