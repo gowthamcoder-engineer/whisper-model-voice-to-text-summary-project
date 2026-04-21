@@ -8,4 +8,4 @@ import ollama
 import transformers
 from PIL import Image
 
-print("All libraries working")
+print("All libraries working") 
